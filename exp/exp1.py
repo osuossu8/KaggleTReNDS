@@ -52,9 +52,44 @@ warnings.filterwarnings('ignore')
 
 sys.path.append("/usr/src/app/kaggle/trends-assessment-prediction")
 
-import src.config as config
+EXP_ID = 'exp1'
+import configs.config as config
 import src.engine as engine
-import src.model
+from src.model import resnet34
+from src.machine_learning_util import seed_everything, prepare_labels, timer, to_pickle, unpickle
+
+
+SEED = 718
+seed_everything(SEED)
+
+
+LOGGER = logging.getLogger()
+FORMATTER = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+
+def setup_logger(out_file=None, stderr=True, stderr_level=logging.INFO, file_level=logging.DEBUG):
+    LOGGER.handlers = []
+    LOGGER.setLevel(min(stderr_level, file_level))
+
+    if stderr:
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(FORMATTER)
+        handler.setLevel(stderr_level)
+        LOGGER.addHandler(handler)
+
+    if out_file is not None:
+        handler = logging.FileHandler(out_file)
+        handler.setFormatter(FORMATTER)
+        handler.setLevel(file_level)
+        LOGGER.addHandler(handler)
+
+    LOGGER.info("logger set up")
+    return LOGGER
+
+
+LOGGER_PATH = f"logs/log_{EXP_ID}.txt"
+setup_logger(out_file=LOGGER_PATH)
+LOGGER.info("seed={}".format(SEED))
 
 
 class TReNDSDataset:
@@ -63,6 +98,7 @@ class TReNDSDataset:
         self.target = df.iloc[indices][target_cols+['Id']]
         self.target = self.target.fillna(self.target.mean())
         self.map_path = map_path
+        self.target_cols = target_cols
 
     def __len__(self):
         return len(self.target)
@@ -73,7 +109,7 @@ class TReNDSDataset:
         path = self.map_path + str(IDX)
         
         all_maps = h5py.File(path + '.mat', 'r')['SM_feature'][()]
-        targets = self.target[self.target.Id==IDX][target_cols].values
+        targets = self.target[self.target.Id==IDX][self.target_cols].values
 
         return {
             'features': torch.tensor(all_maps, dtype=torch.float32),
@@ -100,9 +136,7 @@ def run_one_fold(fold_id):
     df_train = df[df["is_train"] == True].copy()
 
 
-    num_folds = 4
-    SEED = 718
-
+    num_folds = config.NUM_FOLDS
     kf = StratifiedKFold(n_splits = num_folds, random_state = SEED)
     splits = list(kf.split(X=df_train, y=df_train[['bin_age']]))
 
@@ -130,6 +164,7 @@ def run_one_fold(fold_id):
     gc.collect()
 
 
+    device = config.DEVICE
     model = resnet34()
     model = model.to(device)
 
@@ -145,8 +180,8 @@ def run_one_fold(fold_id):
 
         print("Starting {} epoch...".format(epoch))
 
-        train_fn(train_loader, model, optimizer, device, scheduler)
-        score, val_loss = eval_fn(val_loader, model, device)
+        engine.train_fn(train_loader, model, optimizer, device, scheduler)
+        score, val_loss = engine.eval_fn(val_loader, model, device)
         scheduler.step(val_loss)
 
         if val_loss < min_loss:

@@ -1,5 +1,8 @@
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
+from tqdm import tqdm
 
 
 def weighted_nae(inp, targ):
@@ -61,13 +64,13 @@ def train_fn(data_loader, model, optimizer, device, scheduler=None):
         optimizer.step()
 
         # outputs = torch.sigmoid(outputs).cpu().detach().numpy()
-        #targets = targets.float().cpu().detach().numpy()
-
+        # targets = targets.float().cpu().detach().numpy()
+        cv = weighted_nae(targets, outputs)
         y_true.append(targets)
         y_pred.append(outputs)
 
         losses.update(loss.item(), features.size(0))
-        tk0.set_postfix(loss=losses.avg)
+        tk0.set_postfix(loss=losses.avg, cv=cv.cpu().detach().numpy())
 
     y_true_cat = torch.cat(y_true, 0)
     y_pred_cat = torch.cat(y_pred, 0)
@@ -90,10 +93,11 @@ def eval_fn(data_loader, model, device):
             loss = loss_fn(outputs, targets)
             # outputs = torch.sigmoid(outputs).cpu().detach().numpy()
             # targets = targets.float().cpu().detach().numpy()
+            cv = weighted_nae(targets, outputs)
             y_true.append(targets)
             y_pred.append(outputs)
             losses.update(loss.item(), features.size(0))
-            tk0.set_postfix(loss=losses.avg)
+            tk0.set_postfix(loss=losses.avg, cv=cv.cpu().detach().numpy())
         y_true_cat = torch.cat(y_true, 0)
         y_pred_cat = torch.cat(y_pred, 0)
         score = weighted_nae(y_true_cat, y_pred_cat)
