@@ -55,7 +55,7 @@ sys.path.append("/usr/src/app/kaggle/trends-assessment-prediction")
 EXP_ID = 'exp1'
 import configs.config as config
 import src.engine as engine
-from src.model import resnet34
+from src.model import resnet10, resnet34
 from src.machine_learning_util import seed_everything, prepare_labels, timer, to_pickle, unpickle
 
 
@@ -165,13 +165,14 @@ def run_one_fold(fold_id):
 
 
     device = config.DEVICE
-    model = resnet34()
+    model = resnet10()
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-5) 
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30, eta_min=1e-6)
+    # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-5) 
 
-    patience = 3
+    patience = 5
     p = 0
     min_loss = 999
     best_score = -999
@@ -182,7 +183,8 @@ def run_one_fold(fold_id):
 
         engine.train_fn(train_loader, model, optimizer, device, scheduler)
         score, val_loss = engine.eval_fn(val_loader, model, device)
-        scheduler.step(val_loss)
+        scheduler.step()
+        # scheduler.step(val_loss)
 
         if val_loss < min_loss:
             min_loss = val_loss

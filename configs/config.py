@@ -7,8 +7,8 @@ sys.path.append("/usr/src/app/kaggle/trends-assessment-prediction")
 
 TRAIN_BATCH_SIZE = 16
 VALID_BATCH_SIZE = 8
-EPOCHS = 5
-NUM_FOLDS = 4
+EPOCHS = 30
+NUM_FOLDS = 5
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 INPUT_DIR = 'inputs'
