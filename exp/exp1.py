@@ -132,8 +132,8 @@ def run_one_fold(fold_id):
 
     df['bin_age'] = pd.cut(df['age'], [i for i in range(0, 100, 10)], labels=False)
 
-    df_test = df[df["is_train"] != True].copy()
-    df_train = df[df["is_train"] == True].copy()
+    df_test = df[df["is_train"] != True].copy().head(150)
+    df_train = df[df["is_train"] == True].copy().head(150)
 
 
     num_folds = config.NUM_FOLDS
@@ -171,7 +171,7 @@ def run_one_fold(fold_id):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-5) 
 
-
+    patience = 3
     p = 0
     min_loss = 999
     best_score = -999
@@ -190,14 +190,15 @@ def run_one_fold(fold_id):
             best_epoch = epoch
             torch.save(model.state_dict(), os.path.join(config.OUT_DIR, '{}_fold{}.pth'.format(EXP_ID, fold_id)))
             print("save model at score={} on epoch={}".format(best_score, best_epoch))
- 
+            p = 0 
+
         if p > 0: 
             print(f'val loss is not updated while {p} epochs of training')
         p += 1
         if p > patience:
             print(f'Early Stopping')
             break
-        print("best score={} on epoch={}".format(best_score, best_epoch))
+    print("best score={} on epoch={}".format(best_score, best_epoch))
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
-import numpy as np
 import pandas as pd
+import numpy as np
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -8,6 +8,10 @@ from tqdm import tqdm
 def weighted_nae(inp, targ):
     W = torch.FloatTensor([0.3, 0.175, 0.175, 0.175, 0.175])
     return torch.mean(torch.matmul(torch.abs(inp - targ), W.cuda()/torch.mean(targ, axis=0)))
+
+
+def metric(y_true, y_pred):
+    return np.mean(np.sum(np.abs(y_true - y_pred), axis=0) / np.sum(y_true, axis=0))
 
 
 class AverageMeter(object):
@@ -59,24 +63,19 @@ def train_fn(data_loader, model, optimizer, device, scheduler=None):
         model.zero_grad()
         outputs = model(features)
 
-        loss = loss_fn(outputs, targets)
+        loss = weighted_nae(outputs, targets)
         loss.backward()
         optimizer.step()
 
-        # outputs = torch.sigmoid(outputs).cpu().detach().numpy()
-        # targets = targets.float().cpu().detach().numpy()
-        cv = weighted_nae(targets, outputs)
-        y_true.append(targets)
-        y_pred.append(outputs)
+        y_true.append(targets.cpu().detach().numpy())
+        y_pred.append(outputs.cpu().detach().numpy())
 
         losses.update(loss.item(), features.size(0))
-        tk0.set_postfix(loss=losses.avg, cv=cv.cpu().detach().numpy())
+        tk0.set_postfix(loss=losses.avg)
 
-    y_true_cat = torch.cat(y_true, 0)
-    y_pred_cat = torch.cat(y_pred, 0)
-    score = weighted_nae(y_true_cat, y_pred_cat)
+    y_true = np.concatenate(y_true, 0)
+    y_pred = np.concatenate(y_pred, 0)
     print()
-    print(f'train score : {score}')
 
 
 def eval_fn(data_loader, model, device):
@@ -90,16 +89,22 @@ def eval_fn(data_loader, model, device):
             features = d["features"].to(device, dtype=torch.float32)
             targets = d["targets"].to(device, dtype=torch.float32).view(-1, 5)
             outputs = model(features)
-            loss = loss_fn(outputs, targets)
-            # outputs = torch.sigmoid(outputs).cpu().detach().numpy()
-            # targets = targets.float().cpu().detach().numpy()
-            cv = weighted_nae(targets, outputs)
-            y_true.append(targets)
-            y_pred.append(outputs)
+            loss = weighted_nae(outputs, targets)
+            y_true.append(targets.cpu().detach().numpy())
+            y_pred.append(outputs.cpu().detach().numpy())
             losses.update(loss.item(), features.size(0))
-            tk0.set_postfix(loss=losses.avg, cv=cv.cpu().detach().numpy())
-        y_true_cat = torch.cat(y_true, 0)
-        y_pred_cat = torch.cat(y_pred, 0)
-        score = weighted_nae(y_true_cat, y_pred_cat)
-        print(f'valid score : {score}')
-    return score, losses.avg        
+            tk0.set_postfix(loss=losses.avg)
+    y_true = np.concatenate(y_true, 0)
+    y_pred = np.concatenate(y_pred, 0)
+
+    domain = ['age', 'domain1_var1', 'domain1_var2', 'domain2_var1', 'domain2_var2']
+    w = [0.3, 0.175, 0.175, 0.175, 0.175]
+
+    m_all = 0
+    for i in range(5):
+        m = metric(y_true[:,i], y_pred[:,i])
+        print(domain[i],'metric:', m)
+        m_all += m*w[i]
+
+    print('all_metric:', m_all)
+    return m_all, losses.avg        
