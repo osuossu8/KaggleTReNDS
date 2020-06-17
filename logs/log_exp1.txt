@@ -1,0 +1,71 @@
+2020-06-16 17:47:00,513 - INFO - logger set up
+2020-06-16 17:47:00,513 - INFO - seed=718
+2020-06-16 17:47:00,514 - INFO - Starting fold 0 ...
+2020-06-16 17:47:30,042 - INFO - logger set up
+2020-06-16 17:47:30,043 - INFO - seed=718
+2020-06-16 17:47:30,043 - INFO - Starting fold 0 ...
+2020-06-16 17:48:23,292 - INFO - logger set up
+2020-06-16 17:48:23,292 - INFO - seed=718
+2020-06-16 17:48:23,292 - INFO - Starting fold 0 ...
+2020-06-16 17:50:48,401 - INFO - logger set up
+2020-06-16 17:50:48,401 - INFO - seed=718
+2020-06-16 17:50:48,401 - INFO - Starting fold 0 ...
+2020-06-16 17:54:08,879 - INFO - logger set up
+2020-06-16 17:54:08,880 - INFO - seed=718
+2020-06-16 17:54:08,880 - INFO - Starting fold 0 ...
+2020-06-16 17:59:25,029 - INFO - logger set up
+2020-06-16 17:59:25,029 - INFO - seed=718
+2020-06-16 17:59:25,029 - INFO - Starting fold 0 ...
+2020-06-16 18:02:11,664 - INFO - logger set up
+2020-06-16 18:02:11,664 - INFO - seed=718
+2020-06-16 18:02:11,664 - INFO - Starting fold 0 ...
+2020-06-16 18:03:45,357 - INFO - logger set up
+2020-06-16 18:03:45,357 - INFO - seed=718
+2020-06-16 18:03:45,357 - INFO - Starting fold 0 ...
+2020-06-16 18:05:59,097 - INFO - logger set up
+2020-06-16 18:05:59,098 - INFO - seed=718
+2020-06-16 18:05:59,098 - INFO - Starting fold 0 ...
+2020-06-17 00:09:13,325 - INFO - logger set up
+2020-06-17 00:09:13,325 - INFO - seed=718
+2020-06-17 00:09:13,325 - INFO - Starting fold 0 ...
+2020-06-17 02:04:33,688 - INFO - This is fold0 only experiment.
+2020-06-17 02:23:28,609 - INFO - logger set up
+2020-06-17 02:23:28,609 - INFO - seed=718
+2020-06-17 02:23:28,609 - INFO - Starting fold 0 ...
+2020-06-17 02:27:17,160 - INFO - This is fold0 only experiment.
+2020-06-17 02:40:03,635 - INFO - logger set up
+2020-06-17 02:40:03,636 - INFO - seed=718
+2020-06-17 02:40:03,636 - INFO - Starting fold 0 ...
+2020-06-17 02:40:31,924 - INFO - logger set up
+2020-06-17 02:40:31,924 - INFO - seed=718
+2020-06-17 02:40:31,924 - INFO - Starting fold 0 ...
+2020-06-17 02:42:36,186 - INFO - logger set up
+2020-06-17 02:42:36,186 - INFO - seed=718
+2020-06-17 02:42:36,186 - INFO - Starting fold 0 ...
+2020-06-17 10:20:29,663 - INFO - This is fold0 only experiment.
+
+Starting 16 epoch...
+100%|#############################################################################################################| 147/147 [21:57<00:00,  8.96s/it, loss=0.126$
+
+100%|###############################################################################################################| 74/74 [04:56<00:00,  4.01s/it, loss=0.171$
+age metric: 0.18161501
+domain1_var1 metric: 0.15087906
+domain1_var2 metric: 0.14944153
+domain2_var1 metric: 0.1804001
+domain2_var2 metric: 0.1845484
+all_metric: 0.1709065914154053
+val loss is not updated while 4 epochs of training
+Starting 17 epoch...
+100%|#############################################################################################################| 147/147 [22:04<00:00,  9.01s/it, loss=0.122$
+
+100%|###############################################################################################################| 74/74 [05:05<00:00,  4.13s/it, loss=0.176]
+age metric: 0.19607523
+domain1_var1 metric: 0.15041432
+domain1_var2 metric: 0.15101962
+domain2_var1 metric: 0.18082862
+domain2_var2 metric: 0.18437086
+all_metric: 0.17548341639339923
+val loss is not updated while 5 epochs of training
+Early Stopping
+best score=0.16808325201272964 on epoch=12
+2020-06-17 10:20:29,663 - INFO - This is fold0 only experiment.
