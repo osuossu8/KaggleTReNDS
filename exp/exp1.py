@@ -132,8 +132,8 @@ def run_one_fold(fold_id):
 
     df['bin_age'] = pd.cut(df['age'], [i for i in range(0, 100, 10)], labels=False)
 
-    df_test = df[df["is_train"] != True].copy().head(150)
-    df_train = df[df["is_train"] == True].copy().head(150)
+    df_test = df[df["is_train"] != True].copy()
+    df_train = df[df["is_train"] == True].copy()
 
 
     num_folds = config.NUM_FOLDS
