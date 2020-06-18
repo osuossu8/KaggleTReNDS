@@ -55,7 +55,7 @@ sys.path.append("/usr/src/app/kaggle/trends-assessment-prediction")
 EXP_ID = 'exp2'
 import configs.config2 as config
 import src.engine as engine
-from src.model import resnet10, resnet34
+from src.model import resnet10, resnet34, md_resnet10
 from src.machine_learning_util import seed_everything, prepare_labels, timer, to_pickle, unpickle
 
 
@@ -165,7 +165,9 @@ def run_one_fold(fold_id):
 
 
     device = config.DEVICE
-    model = resnet34()
+    model = md_resnet10()
+    model.load_state_dict(torch.load("inputs/pretrain/resnet_10.pth"))
+    print("pretrained model loaded !")
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)

@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import logging
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -104,8 +103,8 @@ def eval_fn(data_loader, model, device):
     m_all = 0
     for i in range(5):
         m = metric(y_true[:,i], y_pred[:,i])
-        logging.info(domain[i],'metric:', m)
+        print(domain[i],'metric:', m)
         m_all += m*w[i]
 
-    logging.info('all_metric:', m_all)
+    print('all_metric:', m_all)
     return m_all, losses.avg        
