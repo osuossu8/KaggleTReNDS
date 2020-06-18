@@ -166,6 +166,8 @@ def run_one_fold(fold_id):
 
     device = config.DEVICE
     model = resnet10()
+
+    # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89
     net_dict = model.state_dict() 
     pretrain = torch.load("inputs/pretrain/resnet_10.pth")
     pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
