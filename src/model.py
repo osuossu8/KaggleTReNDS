@@ -295,7 +295,12 @@ def resnet10(**kwargs):
 def md_resnet10(**kwargs):
     """Constructs a ResNet-18 model.
     """
-    model = ResNet(BasicBlock, [1, 1, 1, 1], **kwargs)
+    params = {}
+    params['sample_input_D'] = 14
+    params['sample_input_H'] = 28
+    params['sample_input_W'] = 28
+    params['num_seg_classes'] = 5
+    model = ResNet(BasicBlock, [1, 1, 1, 1], **params)
     return model
 
 def resnet34(**kwargs):

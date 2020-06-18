@@ -165,8 +165,13 @@ def run_one_fold(fold_id):
 
 
     device = config.DEVICE
-    model = md_resnet10()
-    model.load_state_dict(torch.load("inputs/pretrain/resnet_10.pth"))
+    model = resnet10()
+    net_dict = model.state_dict() 
+    pretrain = torch.load("inputs/pretrain/resnet_10.pth")
+    pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
+    net_dict.update(pretrain_dict)
+
+    model.load_state_dict(net_dict)
     print("pretrained model loaded !")
     model = model.to(device)
 
