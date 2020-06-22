@@ -112,12 +112,12 @@ class ResNet3D(nn.Module):
         super(ResNet3D, self).__init__()
 
         # 3D conv net
-        self.conv0 = nn.Conv3d(53, 3, kernel_size=1, bias=False)
-        self.bn0 = nn.BatchNorm3d(3)
-        self.relu0 = nn.ReLU(inplace=True)
+        # self.conv0 = nn.Conv3d(53, 3, kernel_size=1, bias=False)
+        # self.bn0 = nn.BatchNorm3d(3)
+        # self.relu0 = nn.ReLU(inplace=True)
 
-        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
-        # self.conv1 = nn.Conv3d(53, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
+        # self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
+        self.conv1 = nn.Conv3d(53, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
         # self.conv1 = nn.Conv3d(1, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
@@ -168,9 +168,9 @@ class ResNet3D(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.conv0(x)
-        x = self.bn0(x)
-        x = self.relu0(x)
+        # x = self.conv0(x)
+        # x = self.bn0(x)
+        # x = self.relu0(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -317,3 +317,16 @@ def resnet34(**kwargs):
     model = ResNet3D(BasicBlock, [3, 4, 6, 3], **kwargs)
     return model
 
+
+def resnet34(**kwargs):
+    """Constructs a ResNet-34 model.
+    """
+    model = ResNet3D(BasicBlock, [3, 4, 6, 3], **kwargs)
+    return model
+
+
+def resnet50(**kwargs):
+    """Constructs a ResNet-50 model.
+    """
+    model = ResNet3D(Bottleneck, [3, 4, 6, 3], **kwargs)
+    return model
