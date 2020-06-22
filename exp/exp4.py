@@ -117,6 +117,15 @@ class TReNDSDataset:
         }
 
 
+def lr_func(epoch):
+    if epoch < 4:
+        return 1e-4
+    elif epoch < 6:
+        return 5e-5
+    else:
+        return 1e-5
+
+
 def run_one_fold(fold_id):
 
     fnc_df = pd.read_csv(config.FNC_PATH)
@@ -130,15 +139,18 @@ def run_one_fold(fold_id):
 
     df = df.merge(labels_df, on="Id", how="left")
 
-    df['bin_age'] = pd.cut(df['age'], [i for i in range(0, 100, 10)], labels=False)
+    # df['bin_age'] = pd.cut(df['age'], [i for i in range(0, 100, 10)], labels=False)
 
     df_test = df[df["is_train"] != True].copy()
     df_train = df[df["is_train"] == True].copy()
 
 
     num_folds = config.NUM_FOLDS
-    kf = StratifiedKFold(n_splits = num_folds, random_state = SEED)
-    splits = list(kf.split(X=df_train, y=df_train[['bin_age']]))
+    # kf = StratifiedKFold(n_splits = num_folds, random_state = SEED)
+    # splits = list(kf.split(X=df_train, y=df_train[['bin_age']]))
+
+    kf = KFold(n_splits = num_folds, random_state = SEED)
+    splits = list(kf.split(X=df_train))
 
     train_idx = splits[fold_id][0]
     val_idx = splits[fold_id][1]
@@ -168,6 +180,7 @@ def run_one_fold(fold_id):
     params = {}
     params['shortcut_type'] = 'A'
     model = resnet50(**params)
+    # model = resnet50()
 
     # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89
     net_dict = model.state_dict() 
@@ -182,7 +195,8 @@ def run_one_fold(fold_id):
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30, eta_min=1e-6)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lr_func)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30, eta_min=1e-6)
     # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-5) 
 
     patience = config.PATIENCE

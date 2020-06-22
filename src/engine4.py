@@ -54,7 +54,7 @@ def custom_loss(logits, targets):
     loss = 0
     w = [0.3, 0.175, 0.175, 0.175, 0.175]
     for i in range(5):
-      loss += w[i] * loss_fn(outputs[:, i], targets[:, i])
+      loss += w[i] * loss_fn(logits[:, i], targets[:, i])
     return loss
 
 
