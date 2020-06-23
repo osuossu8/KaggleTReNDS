@@ -52,10 +52,11 @@ warnings.filterwarnings('ignore')
 
 sys.path.append("/usr/src/app/kaggle/trends-assessment-prediction")
 
-EXP_ID = 'exp4'
+EXP_ID = 'exp6'
 import configs.config4 as config
 import src.engine4 as engine
-from src.model import resnet10, resnet34, md_resnet10, resnet50
+# from src.model import resnet10, resnet34, md_resnet10, resnet50
+from src.model2 import resnet10, resnet34, resnet50
 from src.machine_learning_util import seed_everything, prepare_labels, timer, to_pickle, unpickle
 
 
@@ -141,16 +142,25 @@ def run_one_fold(fold_id):
 
     # df['bin_age'] = pd.cut(df['age'], [i for i in range(0, 100, 10)], labels=False)
 
+    # exp4
+    # df['bin_age'] = pd.cut(df['age'], [i for i in range(10, 100, 9)], labels=False)
+
+    # exp5
+    # df['bin_age'] = pd.cut(df['age'], 8, labels=False)
+
+    # exp6
+    df['bin_age'] = pd.cut(df['age'], 9, labels=False)
+
     df_test = df[df["is_train"] != True].copy()
     df_train = df[df["is_train"] == True].copy()
 
 
     num_folds = config.NUM_FOLDS
-    # kf = StratifiedKFold(n_splits = num_folds, random_state = SEED)
-    # splits = list(kf.split(X=df_train, y=df_train[['bin_age']]))
+    kf = StratifiedKFold(n_splits = num_folds, random_state = SEED)
+    splits = list(kf.split(X=df_train, y=df_train[['bin_age']]))
 
-    kf = KFold(n_splits = num_folds, random_state = SEED)
-    splits = list(kf.split(X=df_train))
+    # kf = KFold(n_splits = num_folds, random_state = SEED)
+    # splits = list(kf.split(X=df_train))
 
     train_idx = splits[fold_id][0]
     val_idx = splits[fold_id][1]
@@ -195,8 +205,8 @@ def run_one_fold(fold_id):
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lr_func)
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30, eta_min=1e-6)
+    # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lr_func)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=1e-6)
     # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-5) 
 
     patience = config.PATIENCE
