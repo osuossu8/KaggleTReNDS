@@ -68,13 +68,13 @@ def train_fn(data_loader, model, optimizer, device, scheduler=None):
     for bi, d in enumerate(tk0):
 
         features = d["features"].to(device, dtype=torch.float32)
-        f_loading = d["f_loading"].to(device, dtype=torch.float32)
-        f_fnc = d["f_fnc"].to(device, dtype=torch.float32)
+        # f_loading = d["f_loading"].to(device, dtype=torch.float32)
+        # f_fnc = d["f_fnc"].to(device, dtype=torch.float32)
         targets = d["targets"].to(device, dtype=torch.float32).view(-1, 5)
 
         model.zero_grad()
-        outputs = model(features, f_loading, f_fnc)
-
+        # outputs = model(features, f_loading, f_fnc)
+        outputs = model(features)
         # domain1_var2 だけ 
         # loss = loss_fn(outputs[:, 2], targets[:, 2])
         loss = weighted_nae(outputs, targets)
@@ -101,10 +101,11 @@ def eval_fn(data_loader, model, device):
         tk0 = tqdm(data_loader, total=len(data_loader))
         for bi, d in enumerate(tk0):
             features = d["features"].to(device, dtype=torch.float32)
-            f_loading = d["f_loading"].to(device, dtype=torch.float32)
-            f_fnc = d["f_fnc"].to(device, dtype=torch.float32)
+            # f_loading = d["f_loading"].to(device, dtype=torch.float32)
+            # f_fnc = d["f_fnc"].to(device, dtype=torch.float32)
             targets = d["targets"].to(device, dtype=torch.float32).view(-1, 5)
-            outputs = model(features, f_loading, f_fnc)
+            # outputs = model(features, f_loading, f_fnc)
+            outputs = model(features)
             # domain1_var2 だけ
             # loss = loss_fn(outputs[:, 2], targets[:, 2])
             # loss = custom_loss(outputs, targets)

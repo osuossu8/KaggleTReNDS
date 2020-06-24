@@ -145,7 +145,7 @@ def run_one_fold(fold_id):
 
     target_cols = ['age', 'domain1_var1', 'domain1_var2', 'domain2_var1', 'domain2_var2']
 
-    # df_train = df_train.dropna().reset_index(drop=True)
+    df_train = df_train.dropna().reset_index(drop=True)
 
     num_folds = config.NUM_FOLDS
     kf = StratifiedKFold(n_splits = num_folds, random_state = SEED)
@@ -161,11 +161,11 @@ def run_one_fold(fold_id):
 
     print(len(train_idx), len(val_idx))
 
-    for i in range(8):
-        df_train.loc[df_train['bin_age']==i, target_cols[1]] = df_train.loc[df_train['bin_age']==i, target_cols[1]].fillna(df_train[df_train['bin_age']==i][target_cols[1]].mean())
-        df_train.loc[df_train['bin_age']==i, target_cols[2]] = df_train.loc[df_train['bin_age']==i, target_cols[2]].fillna(df_train[df_train['bin_age']==i][target_cols[2]].mean())
-        df_train.loc[df_train['bin_age']==i, target_cols[3]] = df_train.loc[df_train['bin_age']==i, target_cols[3]].fillna(df_train[df_train['bin_age']==i][target_cols[3]].mean())
-        df_train.loc[df_train['bin_age']==i, target_cols[4]] = df_train.loc[df_train['bin_age']==i, target_cols[4]].fillna(df_train[df_train['bin_age']==i][target_cols[4]].mean())
+    # for i in range(8):
+    #     df_train.loc[df_train['bin_age']==i, target_cols[1]] = df_train.loc[df_train['bin_age']==i, target_cols[1]].fillna(df_train[df_train['bin_age']==i][target_cols[1]].mean())
+    #     df_train.loc[df_train['bin_age']==i, target_cols[2]] = df_train.loc[df_train['bin_age']==i, target_cols[2]].fillna(df_train[df_train['bin_age']==i][target_cols[2]].mean())
+    #     df_train.loc[df_train['bin_age']==i, target_cols[3]] = df_train.loc[df_train['bin_age']==i, target_cols[3]].fillna(df_train[df_train['bin_age']==i][target_cols[3]].mean())
+    #     df_train.loc[df_train['bin_age']==i, target_cols[4]] = df_train.loc[df_train['bin_age']==i, target_cols[4]].fillna(df_train[df_train['bin_age']==i][target_cols[4]].mean())
 
 
     train_dataset = TReNDSDataset(df=df_train, target_cols=target_cols, indices=train_idx, 
@@ -192,7 +192,7 @@ def run_one_fold(fold_id):
 
     device = config.DEVICE
     params = {}
-    params['shortcut_type'] = 'A'
+    # params['shortcut_type'] = 'A'
     model = generate_model(50, **params)
 
     # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89
@@ -204,6 +204,8 @@ def run_one_fold(fold_id):
 
     model.load_state_dict(net_dict)
     print("pretrained model loaded !")
+
+    model.fc = nn.Linear(model.fc.in_features, 5)
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
