@@ -111,9 +111,9 @@ class ResNet3D(nn.Module):
         self.no_cuda = no_cuda
         super(ResNet3D, self).__init__()
 
-        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
+        # self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
         # self.conv1 = nn.Conv3d(53, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
-        # self.conv1 = nn.Conv3d(1, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
+        self.conv1 = nn.Conv3d(1, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=2, padding=1)
@@ -181,13 +181,13 @@ class ResNet3D(nn.Module):
 
     def forward(self, x, loading_x, fnc_x):
 
-        inp_x = torch.stack([
-                torch.max(x, 1)[0],
-                torch.std(x, 1),
-                torch.mean(x, 1)
-            ], 1)
+        #inp_x = torch.stack([
+        #        torch.max(x, 1)[0],
+        #        torch.std(x, 1),
+        #        torch.mean(x, 1)
+        #    ], 1)
 
-        # inp_x = torch.max(x, 1)[0].reshape(-1, 1, 52, 63, 53)
+        inp_x = torch.max(x, 1)[0].reshape(-1, 1, 52, 63, 53)
 
         x = self.conv1(inp_x)
         x = self.bn1(x)
