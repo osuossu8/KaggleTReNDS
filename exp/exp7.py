@@ -136,6 +136,10 @@ def run_one_fold(fold_id):
     df_test = df[df["is_train"] != True].copy()
     df_train = df[df["is_train"] == True].copy()
 
+    target_cols = ['age', 'domain1_var1', 'domain1_var2', 'domain2_var1', 'domain2_var2']
+
+    df_train = df_train.dropna().reset_index(drop=True)
+
     num_folds = config.NUM_FOLDS
     kf = StratifiedKFold(n_splits = num_folds, random_state = SEED)
     splits = list(kf.split(X=df_train, y=df_train[['bin_age']]))
@@ -150,11 +154,11 @@ def run_one_fold(fold_id):
 
     print(len(train_idx), len(val_idx))
 
-    for i in range(8):
-        df_train.loc[df_train['bin_age']==i, target_cols[1]] = df_train.loc[df_train['bin_age']==i, target_cols[1]].fillna(df_train[df_train['bin_age']==i][target_cols[1]].mean())
-        df_train.loc[df_train['bin_age']==i, target_cols[2]] = df_train.loc[df_train['bin_age']==i, target_cols[2]].fillna(df_train[df_train['bin_age']==i][target_cols[2]].mean())
-        df_train.loc[df_train['bin_age']==i, target_cols[3]] = df_train.loc[df_train['bin_age']==i, target_cols[3]].fillna(df_train[df_train['bin_age']==i][target_cols[3]].mean())
-        df_train.loc[df_train['bin_age']==i, target_cols[4]] = df_train.loc[df_train['bin_age']==i, target_cols[4]].fillna(df_train[df_train['bin_age']==i][target_cols[4]].mean())
+    #for i in range(8):
+    #    df_train.loc[df_train['bin_age']==i, target_cols[1]] = df_train.loc[df_train['bin_age']==i, target_cols[1]].fillna(df_train[df_train['bin_age']==i][target_cols[1]].mean())
+    #    df_train.loc[df_train['bin_age']==i, target_cols[2]] = df_train.loc[df_train['bin_age']==i, target_cols[2]].fillna(df_train[df_train['bin_age']==i][target_cols[2]].mean())
+    #    df_train.loc[df_train['bin_age']==i, target_cols[3]] = df_train.loc[df_train['bin_age']==i, target_cols[3]].fillna(df_train[df_train['bin_age']==i][target_cols[3]].mean())
+    #    df_train.loc[df_train['bin_age']==i, target_cols[4]] = df_train.loc[df_train['bin_age']==i, target_cols[4]].fillna(df_train[df_train['bin_age']==i][target_cols[4]].mean())
 
 
     train_dataset = TReNDSDataset(df=df_train, target_cols=target_cols, indices=train_idx, map_path=config.TRAIN_MAP_PATH)
