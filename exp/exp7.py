@@ -56,7 +56,7 @@ EXP_ID = 'exp7'
 import configs.config7 as config
 import src.engine7 as engine
 # from src.model import resnet10, resnet34, md_resnet10, resnet50
-from src.model2 import resnet10, resnet34, resnet50
+from src.model2 import resnet10, resnet34, resnet50, resnet18_medicalnet, resnet50_medicalnet
 from src.machine_learning_util import seed_everything, prepare_labels, timer, to_pickle, unpickle
 
 
@@ -180,22 +180,26 @@ def run_one_fold(fold_id):
     device = config.DEVICE
     params = {}
     params['shortcut_type'] = 'A'
-    model = resnet50(**params)
-    # model = resnet50()
+    # model = resnet50(**params)
+    # model = resnet50_medicalnet()
+    model = resnet18_medicalnet()
 
     # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89
     net_dict = model.state_dict() 
-    pretrain = torch.load("inputs/pretrain/resnet_50.pth")
+    # pretrain = torch.load("inputs/pretrain/resnet_50.pth")
+    pretrain = torch.load("inputs/pretrain/resnet_18.pth")
+    # pretrain = torch.load("inputs/pretrain/resnet_50_23dataset.pth")
     # LOGGER.info('pytorch 3d model pretrained weight loading ...')
     # pretrain = torch.load("inputs/r3d34_K_200ep.pth")
-    pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
+    # pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
+    pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys() and 'conv1' not in k}
     net_dict.update(pretrain_dict)
 
     model.load_state_dict(net_dict)
     print("pretrained model loaded !")
     model = model.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
+    optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=1e-6)
     # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-5) 
 
