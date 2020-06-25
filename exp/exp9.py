@@ -192,7 +192,7 @@ def run_one_fold(fold_id):
 
     device = config.DEVICE
     params = {}
-    # params['shortcut_type'] = 'A'
+    params['shortcut_type'] = 'A'
     model = generate_model(50, **params)
 
     # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89

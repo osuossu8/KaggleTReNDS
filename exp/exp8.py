@@ -194,12 +194,12 @@ def run_one_fold(fold_id):
     device = config.DEVICE
     params = {}
     params['shortcut_type'] = 'A'
-    model = resnet50(**params)
+    model = resnet10(**params)
     # model = resnet50()
 
     # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89
     net_dict = model.state_dict() 
-    pretrain = torch.load("inputs/pretrain/resnet_50.pth")
+    pretrain = torch.load("inputs/pretrain/resnet_10.pth")
     # LOGGER.info('pytorch 3d model pretrained weight loading ...')
     # pretrain = torch.load("inputs/r3d34_K_200ep.pth")
     # pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
@@ -211,7 +211,7 @@ def run_one_fold(fold_id):
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30, eta_min=1e-6)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-6)
     # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-5) 
 
     patience = config.PATIENCE
