@@ -56,7 +56,7 @@ EXP_ID = 'exp7'
 import configs.config7 as config
 import src.engine7 as engine
 # from src.model import resnet10, resnet34, md_resnet10, resnet50
-from src.model2 import resnet10, resnet34, resnet50, resnet18_medicalnet, resnet50_medicalnet
+from src.model2 import resnet10, resnet34, resnet50, resnet18_medicalnet, resnet50_medicalnet, resnet152_medicalnet
 from src.machine_learning_util import seed_everything, prepare_labels, timer, to_pickle, unpickle
 
 
@@ -181,13 +181,14 @@ def run_one_fold(fold_id):
     params = {}
     params['shortcut_type'] = 'A'
     # model = resnet50(**params)
-    # model = resnet50_medicalnet()
-    model = resnet18_medicalnet()
+    # model = resnet18_medicalnet()
+    # model = resnet50_medicalnet(**params)
+    model = resnet152_medicalnet(**params)
 
     # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89
     net_dict = model.state_dict() 
-    # pretrain = torch.load("inputs/pretrain/resnet_50.pth")
-    pretrain = torch.load("inputs/pretrain/resnet_18.pth")
+    pretrain = torch.load("inputs/pretrain/resnet_152.pth")
+    # pretrain = torch.load("inputs/pretrain/resnet_18.pth")
     # pretrain = torch.load("inputs/pretrain/resnet_50_23dataset.pth")
     # LOGGER.info('pytorch 3d model pretrained weight loading ...')
     # pretrain = torch.load("inputs/r3d34_K_200ep.pth")
@@ -200,8 +201,7 @@ def run_one_fold(fold_id):
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=1e-6)
-    # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-5) 
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30, eta_min=1e-6)
 
     patience = config.PATIENCE
     p = 0
@@ -215,7 +215,6 @@ def run_one_fold(fold_id):
         engine.train_fn(train_loader, model, optimizer, device, scheduler)
         score, val_loss = engine.eval_fn(val_loader, model, device)
         scheduler.step()
-        # scheduler.step(val_loss)
 
         if val_loss < min_loss:
             min_loss = val_loss

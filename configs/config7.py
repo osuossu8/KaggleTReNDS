@@ -5,11 +5,11 @@ import torch
 sys.path.append("/usr/src/app/kaggle/trends-assessment-prediction")
 
 
-TRAIN_BATCH_SIZE = 32
-VALID_BATCH_SIZE = 16
+TRAIN_BATCH_SIZE = 8
+VALID_BATCH_SIZE = 4
 EPOCHS = 30
 NUM_FOLDS = 5
-PATIENCE = 2
+PATIENCE = 4
 LR = 1e-4
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
