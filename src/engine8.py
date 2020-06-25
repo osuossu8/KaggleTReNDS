@@ -77,8 +77,8 @@ def train_fn(data_loader, model, optimizer, device, scheduler=None):
 
         # domain1_var2 だけ 
         # loss = loss_fn(outputs[:, 2], targets[:, 2])
-        # loss = custom_loss(outputs, targets)
-        loss = weighted_nae(outputs, targets)
+        loss = custom_loss(outputs, targets)
+        # loss = weighted_nae(outputs, targets)
         loss.backward()
         optimizer.step()
 
@@ -108,8 +108,8 @@ def eval_fn(data_loader, model, device):
             outputs = model(features, f_loading, f_fnc)
             # domain1_var2 だけ
             # loss = loss_fn(outputs[:, 2], targets[:, 2])
-            # loss = custom_loss(outputs, targets)
-            loss = weighted_nae(outputs, targets)
+            loss = custom_loss(outputs, targets)
+            # loss = weighted_nae(outputs, targets)
             y_true.append(targets.cpu().detach().numpy())
             y_pred.append(outputs.cpu().detach().numpy())
             losses.update(loss.item(), features.size(0))

@@ -5,8 +5,8 @@ import torch
 sys.path.append("/usr/src/app/kaggle/trends-assessment-prediction")
 
 
-TRAIN_BATCH_SIZE = 32
-VALID_BATCH_SIZE = 16
+TRAIN_BATCH_SIZE = 36
+VALID_BATCH_SIZE = 18
 EPOCHS = 30
 NUM_FOLDS = 5
 PATIENCE = 3

@@ -115,6 +115,8 @@ class TReNDSDataset:
         path = self.map_path + str(IDX)
         
         all_maps = h5py.File(path + '.mat', 'r')['SM_feature'][()]
+        all_maps = all_maps[:, 1:-3, :, :]
+
         targets = self.target[self.target.Id==IDX][self.target_cols].values
 
         return {
@@ -138,21 +140,22 @@ def run_one_fold(fold_id):
 
     df = df.merge(labels_df, on="Id", how="left")
 
-    df['bin_age'] = pd.cut(df['age'], 8, labels=False)
+    # df['bin_age'] = pd.cut(df['age'], 8, labels=False)
+    df['bin_age'] = pd.cut(df['age'], 9, labels=False)
 
     df_test = df[df["is_train"] != True].copy()
     df_train = df[df["is_train"] == True].copy()
 
     target_cols = ['age', 'domain1_var1', 'domain1_var2', 'domain2_var1', 'domain2_var2']
 
-    df_train = df_train.dropna().reset_index(drop=True)
+    # df_train = df_train.dropna().reset_index(drop=True)
 
     num_folds = config.NUM_FOLDS
     kf = StratifiedKFold(n_splits = num_folds, random_state = SEED)
     splits = list(kf.split(X=df_train, y=df_train[['bin_age']]))
 
-    # kf = KFold(n_splits = num_folds, random_state = SEED)
-    # splits = list(kf.split(X=df_train))
+    kf = KFold(n_splits = num_folds, random_state = SEED)
+    splits = list(kf.split(X=df_train))
 
     train_idx = splits[fold_id][0]
     val_idx = splits[fold_id][1]
@@ -161,11 +164,11 @@ def run_one_fold(fold_id):
 
     print(len(train_idx), len(val_idx))
 
-    # for i in range(8):
-    #     df_train.loc[df_train['bin_age']==i, target_cols[1]] = df_train.loc[df_train['bin_age']==i, target_cols[1]].fillna(df_train[df_train['bin_age']==i][target_cols[1]].mean())
-    #     df_train.loc[df_train['bin_age']==i, target_cols[2]] = df_train.loc[df_train['bin_age']==i, target_cols[2]].fillna(df_train[df_train['bin_age']==i][target_cols[2]].mean())
-    #     df_train.loc[df_train['bin_age']==i, target_cols[3]] = df_train.loc[df_train['bin_age']==i, target_cols[3]].fillna(df_train[df_train['bin_age']==i][target_cols[3]].mean())
-    #     df_train.loc[df_train['bin_age']==i, target_cols[4]] = df_train.loc[df_train['bin_age']==i, target_cols[4]].fillna(df_train[df_train['bin_age']==i][target_cols[4]].mean())
+    for i in range(8):
+        df_train.loc[df_train['bin_age']==i, target_cols[1]] = df_train.loc[df_train['bin_age']==i, target_cols[1]].fillna(df_train[df_train['bin_age']==i][target_cols[1]].mean())
+        df_train.loc[df_train['bin_age']==i, target_cols[2]] = df_train.loc[df_train['bin_age']==i, target_cols[2]].fillna(df_train[df_train['bin_age']==i][target_cols[2]].mean())
+        df_train.loc[df_train['bin_age']==i, target_cols[3]] = df_train.loc[df_train['bin_age']==i, target_cols[3]].fillna(df_train[df_train['bin_age']==i][target_cols[3]].mean())
+        df_train.loc[df_train['bin_age']==i, target_cols[4]] = df_train.loc[df_train['bin_age']==i, target_cols[4]].fillna(df_train[df_train['bin_age']==i][target_cols[4]].mean())
 
 
     train_dataset = TReNDSDataset(df=df_train, target_cols=target_cols, indices=train_idx, 
@@ -194,16 +197,15 @@ def run_one_fold(fold_id):
     device = config.DEVICE
     params = {}
     params['shortcut_type'] = 'A'
-    model = resnet10(**params)
-    # model = resnet50()
+    model = resnet50(**params)
 
     # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89
     net_dict = model.state_dict() 
-    pretrain = torch.load("inputs/pretrain/resnet_10.pth")
+    pretrain = torch.load("inputs/pretrain/resnet_50.pth")
     # LOGGER.info('pytorch 3d model pretrained weight loading ...')
     # pretrain = torch.load("inputs/r3d34_K_200ep.pth")
-    # pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
-    pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys() and 'conv1' not in k}
+    pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
+    # pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys() and 'conv1' not in k}
     net_dict.update(pretrain_dict)
 
     model.load_state_dict(net_dict)
@@ -211,8 +213,7 @@ def run_one_fold(fold_id):
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-6)
-    # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-5) 
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=1e-6)
 
     patience = config.PATIENCE
     p = 0
@@ -226,7 +227,6 @@ def run_one_fold(fold_id):
         engine.train_fn(train_loader, model, optimizer, device, scheduler)
         score, val_loss = engine.eval_fn(val_loader, model, device)
         scheduler.step()
-        # scheduler.step(val_loss)
 
         if val_loss < min_loss:
             min_loss = val_loss

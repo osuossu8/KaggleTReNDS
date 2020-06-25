@@ -115,9 +115,9 @@ class ResNet3D(nn.Module):
         # self.conv1 = nn.Conv3d(3, 64, kernel_size=17, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
         # self.conv1 = nn.Conv3d(3, 64, kernel_size=21, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
 
-        self.conv1 = nn.Conv3d(1, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
         # self.conv1 = nn.Conv3d(53, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
-        # self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
+        # self.conv1 = nn.Conv3d(1, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
+        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=2, padding=1)
@@ -146,8 +146,9 @@ class ResNet3D(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(64, 16),
         )
-        
-        self.fc = nn.Sequential(nn.Linear(self.fea_dim+16*2, num_class, bias=True))
+
+        # self.fc = nn.Sequential(nn.Linear(self.fea_dim+16*2, num_class, bias=True))
+        self.fc = nn.Sequential(nn.Linear(self.fea_dim, num_class, bias=True))
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -185,15 +186,27 @@ class ResNet3D(nn.Module):
 
     def forward(self, x, loading_x, fnc_x):
 
-        # inp_x = torch.stack([
-        #         torch.max(x, 1)[0],
-        #         torch.std(x, 1),
-        #         torch.mean(x, 1)
-        #     ], 1)
+        # 2次元目の 0, 51, 52 は空白なので使わない
+        # x = x[:, :, 1:-3, :, :]
+        
+        #inp_x = torch.stack([
+        #        torch.max(x, 1)[0],
+        #        torch.std(x, 1),
+        #        torch.mean(x, 1)
+        #    ], 1)
+
+        inp_x = torch.stack([
+                torch.max(x, 2)[0],
+                torch.std(x, 2),
+                torch.mean(x, 2)
+            ], 1)
 
         # inp_x = torch.max(x, 1)[0].reshape(-1, 1, 52, 63, 53)
 
-       inp_x = x[0].reshape(-1, 1, 52, 63, 53)
+        # inp_x = torch.max(x, 1)[0].reshape(-1, 1, 48, 63, 53)
+
+        # 2次元目の max が一番いい感じで画像化できた
+        # inp_x = torch.max(x_use, 2)[0].reshape(-1, 1, 53, 63, 53)
 
         x = self.conv1(inp_x)
         x = self.bn1(x)
@@ -207,11 +220,12 @@ class ResNet3D(nn.Module):
         x = F.adaptive_avg_pool3d(x, (1, 1, 1))
         emb_3d = x.view((-1, self.fea_dim))
 
-        loading_x = self.loading_fc(loading_x)
-        fnc_x = self.fnc_fc(fnc_x)        
+        # loading_x = self.loading_fc(loading_x)
+        # fnc_x = self.fnc_fc(fnc_x)        
+        # cat = torch.cat([emb_3d, loading_x, fnc_x], 1)
 
-        cat = torch.cat([emb_3d, loading_x, fnc_x], 1)
-        out = self.fc(cat)
+        # out = self.fc(cat)
+        out = self.fc(emb_3d)
         return out
 
 
