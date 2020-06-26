@@ -116,8 +116,8 @@ class ResNet3D(nn.Module):
         # self.conv1 = nn.Conv3d(3, 64, kernel_size=21, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
 
         # self.conv1 = nn.Conv3d(53, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
-        # self.conv1 = nn.Conv3d(1, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
-        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
+        self.conv1 = nn.Conv3d(1, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
+        # self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(2, 2, 2), padding=(3, 3, 3), bias=False)
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=2, padding=1)
@@ -195,18 +195,20 @@ class ResNet3D(nn.Module):
         #        torch.mean(x, 1)
         #    ], 1)
 
-        inp_x = torch.stack([
-                torch.max(x, 2)[0],
-                torch.std(x, 2),
-                torch.mean(x, 2)
-            ], 1)
+        # inp_x = torch.stack([
+        #         torch.max(x, 2)[0],
+        #         torch.std(x, 2),
+        #         torch.mean(x, 2)
+        #     ], 1)
+
+        # inp_x = x
 
         # inp_x = torch.max(x, 1)[0].reshape(-1, 1, 52, 63, 53)
 
-        # inp_x = torch.max(x, 1)[0].reshape(-1, 1, 48, 63, 53)
+        inp_x = torch.max(x, 1)[0].reshape(-1, 1, 48, 63, 53)
 
         # 2次元目の max が一番いい感じで画像化できた
-        # inp_x = torch.max(x_use, 2)[0].reshape(-1, 1, 53, 63, 53)
+        # inp_x = torch.max(x, 2)[0].reshape(-1, 1, 53, 63, 53)
 
         x = self.conv1(inp_x)
         x = self.bn1(x)
@@ -229,6 +231,116 @@ class ResNet3D(nn.Module):
         return out
 
 
+class ResNet(nn.Module):
+
+    def __init__(self,
+                 block,
+                 layers,
+                 num_seg_classes=5,
+                 shortcut_type='B',
+                 no_cuda = False):
+        self.inplanes = 64
+        self.no_cuda = no_cuda
+        super(ResNet, self).__init__()
+        self.conv1 = nn.Conv3d(
+            # 53, 64, kernel_size=7,
+            1, 64, kernel_size=7,
+            stride=(2, 2, 2),
+            padding=(3, 3, 3),
+            bias=False)
+
+        self.bn1 = nn.BatchNorm3d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=2, padding=1)
+        self.layer1 = self._make_layer(block, 64, layers[0], shortcut_type)
+        self.layer2 = self._make_layer(
+            block, 128, layers[1], shortcut_type, stride=2)
+        self.layer3 = self._make_layer(
+            block, 256, layers[2], shortcut_type, stride=1, dilation=2)
+        self.layer4 = self._make_layer(
+            block, 512, layers[3], shortcut_type, stride=1, dilation=4)
+
+        self.conv_seg = nn.Sequential(
+                                        nn.ConvTranspose3d(
+                                        512 * block.expansion,
+                                        32, 2, stride=2),
+                                        nn.BatchNorm3d(32),
+                                        nn.ReLU(inplace=True),
+                                        nn.Conv3d(32, 32, kernel_size=3,
+                                        stride=(1, 1, 1),
+                                        padding=(1, 1, 1),
+                                        bias=False),
+                                        nn.BatchNorm3d(32),
+                                        nn.ReLU(inplace=True),
+                                        nn.Conv3d(32, num_seg_classes, kernel_size=1,
+                                        stride=(1, 1, 1),
+                                        bias=False)
+                                        )
+
+        self.fc = nn.Sequential(
+            nn.Linear(13440, 512),
+            nn.ReLU(inplace=True),
+            nn.Linear(512, 512),
+            nn.ReLU(inplace=True),
+            nn.Linear(512, 5),
+        )
+
+        # self.fc = nn.Sequential(nn.Linear(13440, num_seg_classes, bias=True))
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv3d):
+                m.weight = nn.init.kaiming_normal(m.weight, mode='fan_out')
+            elif isinstance(m, nn.BatchNorm3d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+
+    def _make_layer(self, block, planes, blocks, shortcut_type, stride=1, dilation=1):
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            if shortcut_type == 'A':
+                downsample = partial(
+                    downsample_basic_block,
+                    planes=planes * block.expansion,
+                    stride=stride,
+                    no_cuda=self.no_cuda)
+            else:
+                downsample = nn.Sequential(
+                    nn.Conv3d(
+                        self.inplanes,
+                        planes * block.expansion,
+                        kernel_size=1,
+                        stride=stride,
+                        bias=False), nn.BatchNorm3d(planes * block.expansion))
+
+        layers = []
+        layers.append(block(self.inplanes, planes, stride=stride, dilation=dilation, downsample=downsample))
+        self.inplanes = planes * block.expansion
+        for i in range(1, blocks):
+            layers.append(block(self.inplanes, planes, dilation=dilation))
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x, loading_x, fnc_x):
+
+        inp_x = torch.max(x, 1)[0].reshape(-1, 1, 48, 63, 53)
+
+        x = self.conv1(inp_x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.conv_seg(x)
+
+        # print(x.shape)
+        # x = F.adaptive_avg_pool3d(x, (1, 1, 1))
+        # x = x.view(x.size(0), -1)
+        x = x.view(-1, x.size(1)*x.size(2)*x.size(3)*x.size(4))
+        x = self.fc(x)
+        return x
+
 
 def resnet10(**kwargs):
     """Constructs a ResNet-18 model.
@@ -248,4 +360,18 @@ def resnet50(**kwargs):
     """Constructs a ResNet-50 model.
     """
     model = ResNet3D(Bottleneck, [3, 4, 6, 3], **kwargs)
+    return model
+
+
+def resnet18_medicalnet(**kwargs):
+    """Constructs a ResNet-18 model.
+    """
+    model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
+    return model
+
+
+def resnet50_medicalnet(**kwargs):
+    """Constructs a ResNet-50 model.
+    """
+    model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     return model

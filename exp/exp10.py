@@ -25,6 +25,8 @@ torch.backends.cudnn.benchmark = True
 import torch.nn as nn
 import torch.utils.data
 import torch.nn.functional as F
+import torchvision
+import torchvision.transforms as transforms
 from contextlib import contextmanager
 from collections import Counter, defaultdict, OrderedDict
 from sklearn import metrics
@@ -52,11 +54,10 @@ warnings.filterwarnings('ignore')
 
 sys.path.append("/usr/src/app/kaggle/trends-assessment-prediction")
 
-EXP_ID = 'exp8'
-import configs.config8 as config
-import src.engine8 as engine
-# from src.model import resnet10, resnet34, md_resnet10, resnet50
-from src.model3 import resnet10, resnet34, resnet50, resnet18_medicalnet, resnet50_medicalnet
+EXP_ID = 'exp10'
+import configs.config10 as config
+import src.engine10 as engine
+from src.model4 import ConvLSTM
 from src.machine_learning_util import seed_everything, prepare_labels, timer, to_pickle, unpickle
 
 
@@ -97,14 +98,15 @@ class TReNDSDataset:
     def __init__(self, df, target_cols, indices, 
                  loading_features,
                  fnc_features,
-                 map_path):
+                 map_path,
+                 is_train):
         self.df = df.iloc[indices]
         self.target = df.iloc[indices][target_cols+['Id']]
-        # self.target = self.target.fillna(self.target.mean())
         self.loading_features = loading_features
         self.fnc_features = fnc_features
         self.map_path = map_path
         self.target_cols = target_cols
+        self.is_train = is_train
 
     def __len__(self):
         return len(self.target)
@@ -116,6 +118,40 @@ class TReNDSDataset:
         
         all_maps = h5py.File(path + '.mat', 'r')['SM_feature'][()]
         all_maps = all_maps[:, 1:-3, :, :]
+
+        flip_aug = True
+        if self.is_train:
+            if flip_aug and np.random.rand() <= 0.3:
+                all_maps = all_maps[:, :, ::-1, :].copy()
+            elif flip_aug and np.random.rand() <= 0.6:
+                all_maps = all_maps[:, ::-1, :, :].copy()
+
+        mx = torch.max(torch.tensor(all_maps), 0)[0]
+
+        z1 = torch.max(mx, 2)[0].numpy()[:, 2:-2]
+        z2 = torch.max(mx, 1)[0].numpy()[:, 2:-2]
+        z3 = torch.max(mx, 0)[0].numpy().T[2:50, 4:-2]
+
+        all_maps = np.concatenate([z1,z2,z3], 1)
+
+        '''
+        imgA = np.concatenate([torch.max(torch.tensor(all_maps), 3)[0].numpy()[20, :, :],
+                               torch.max(torch.tensor(all_maps), 2)[0].numpy()[20, :, :],
+                          ], 1)
+        
+        imgB = np.concatenate([torch.max(torch.tensor(all_maps), 3)[0].numpy()[30, :, :], 
+                               torch.max(torch.tensor(all_maps), 2)[0].numpy()[30, :, :],
+                          ], 1)
+
+        imgC = np.concatenate([torch.max(torch.tensor(all_maps), 3)[0].numpy()[25, :, :],
+                               torch.max(torch.tensor(all_maps), 2)[0].numpy()[25, :, :],
+                          ], 1)
+        
+        # 53*2 x 63*2 の 2d image map
+        # all_maps = np.concatenate([imgA, imgB], 0)
+        # all_maps = np.stack([imgA, imgC, imgB], 2)
+        # all_maps = torch.max(torch.tensor(all_maps), 2)[0].numpy()
+        '''
 
         targets = self.target[self.target.Id==IDX][self.target_cols].values
 
@@ -140,7 +176,6 @@ def run_one_fold(fold_id):
 
     df = df.merge(labels_df, on="Id", how="left")
 
-    # df['bin_age'] = pd.cut(df['age'], 8, labels=False)
     df['bin_age'] = pd.cut(df['age'], 9, labels=False)
 
     df_test = df[df["is_train"] != True].copy()
@@ -154,9 +189,6 @@ def run_one_fold(fold_id):
     kf = StratifiedKFold(n_splits = num_folds, random_state = SEED)
     splits = list(kf.split(X=df_train, y=df_train[['bin_age']]))
 
-    # kf = KFold(n_splits = num_folds, random_state = SEED)
-    # splits = list(kf.split(X=df_train))
-
     train_idx = splits[fold_id][0]
     val_idx = splits[fold_id][1]
 
@@ -164,7 +196,6 @@ def run_one_fold(fold_id):
 
     print(len(train_idx), len(val_idx))
 
-    # for i in range(8):
     # for i in range(9):
     #     df_train.loc[df_train['bin_age']==i, target_cols[1]] = df_train.loc[df_train['bin_age']==i, target_cols[1]].fillna(df_train[df_train['bin_age']==i][target_cols[1]].mean())
     #     df_train.loc[df_train['bin_age']==i, target_cols[2]] = df_train.loc[df_train['bin_age']==i, target_cols[2]].fillna(df_train[df_train['bin_age']==i][target_cols[2]].mean())
@@ -175,7 +206,8 @@ def run_one_fold(fold_id):
     train_dataset = TReNDSDataset(df=df_train, target_cols=target_cols, indices=train_idx, 
                                   loading_features=loading_features,
                                   fnc_features=fnc_features,
-                                  map_path=config.TRAIN_MAP_PATH)
+                                  map_path=config.TRAIN_MAP_PATH,
+                                  is_train=True)
 
     train_loader = torch.utils.data.DataLoader(
                 train_dataset, shuffle=True, 
@@ -185,7 +217,9 @@ def run_one_fold(fold_id):
     val_dataset = TReNDSDataset(df=df_train, target_cols=target_cols, indices=val_idx, 
                                 loading_features=loading_features,
                                 fnc_features=fnc_features,
-                                map_path=config.TRAIN_MAP_PATH)
+                                map_path=config.TRAIN_MAP_PATH,
+                                is_train=False)
+
     val_loader = torch.utils.data.DataLoader(
                 val_dataset, shuffle=False, 
                 batch_size=config.VALID_BATCH_SIZE,
@@ -196,22 +230,22 @@ def run_one_fold(fold_id):
 
 
     device = config.DEVICE
-    params = {}
-    params['shortcut_type'] = 'A'
-    # model = resnet50(**params)
-    model = resnet50_medicalnet(**params)
 
+    model = torchvision.models.resnext50_32x4d(pretrained=True)
+    model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+    # model.conv1 = ConvLSTM()
+    model.fc = nn.Linear(2048, 5)
     # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89
-    net_dict = model.state_dict() 
-    pretrain = torch.load("inputs/pretrain/resnet_50.pth")
+    # net_dict = model.state_dict() 
+    # pretrain = torch.load("inputs/pretrain/resnet_50.pth")
     # LOGGER.info('pytorch 3d model pretrained weight loading ...')
     # pretrain = torch.load("inputs/r3d34_K_200ep.pth")
-    pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
+    # pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
     # pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys() and 'conv1' not in k}
-    net_dict.update(pretrain_dict)
+    # net_dict.update(pretrain_dict)
+    # model.load_state_dict(net_dict)
+    # print("pretrained model loaded !")
 
-    model.load_state_dict(net_dict)
-    print("pretrained model loaded !")
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)

@@ -73,7 +73,10 @@ def train_fn(data_loader, model, optimizer, device, scheduler=None):
         targets = d["targets"].to(device, dtype=torch.float32).view(-1, 5)
 
         model.zero_grad()
-        outputs = model(features, f_loading, f_fnc)
+        # outputs = model(features, f_loading, f_fnc)
+        # outputs = model(features)
+        # outputs = model(features.view(features.size(0), 53, features.size(1), features.size(2)))
+        outputs = model(features.view(features.size(0), 1, features.size(1), features.size(2)))
 
         # domain1_var2 だけ 
         # loss = loss_fn(outputs[:, 2], targets[:, 2])
@@ -105,7 +108,11 @@ def eval_fn(data_loader, model, device):
             f_loading = d["f_loading"].to(device, dtype=torch.float32)
             f_fnc = d["f_fnc"].to(device, dtype=torch.float32)
             targets = d["targets"].to(device, dtype=torch.float32).view(-1, 5)
-            outputs = model(features, f_loading, f_fnc)
+            #  outputs = model(features, f_loading, f_fnc)
+            # outputs = model(features)
+            # outputs = model(features.view(features.size(0), 53, features.size(1), features.size(2)))
+            outputs = model(features.view(features.size(0), 1, features.size(1), features.size(2)))
+
             # domain1_var2 だけ
             # loss = loss_fn(outputs[:, 2], targets[:, 2])
             # loss = custom_loss(outputs, targets)
