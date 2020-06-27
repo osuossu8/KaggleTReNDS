@@ -121,8 +121,9 @@ class TReNDSDataset:
 
         flip_aug = True
         if self.is_train:
-            if flip_aug and np.random.rand() <= 0.3:
+            if flip_aug and np.random.rand() >= 0.5:
                 all_maps = all_maps[:, :, ::-1, :].copy()
+
             elif flip_aug and np.random.rand() <= 0.6:
                 all_maps = all_maps[:, ::-1, :, :].copy()
 
