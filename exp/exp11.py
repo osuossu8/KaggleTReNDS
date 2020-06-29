@@ -54,7 +54,7 @@ warnings.filterwarnings('ignore')
 
 sys.path.append("/usr/src/app/kaggle/trends-assessment-prediction")
 
-EXP_ID = 'exp10'
+EXP_ID = 'exp11'
 import configs.config11 as config
 import src.engine11 as engine
 from src.model4 import ConvLSTM
@@ -94,6 +94,23 @@ setup_logger(out_file=LOGGER_PATH)
 LOGGER.info("seed={}".format(SEED))
 
 
+def normalize_minmax(img):
+    mi, ma = img.min(), img.max()
+    return (img - mi) / (ma - mi)
+
+
+def make_img_features(sample):
+    mx = torch.sum(torch.tensor(sample), 1)
+    mx = torch.transpose(mx, 0, 2)
+
+    i1 = mx[:,:,16].numpy()
+    i2 = mx[:,:,27].numpy()
+    i3 = mx[:,:,38].numpy()
+    
+    img = np.stack([i1, i2, i3], 2)
+    return img
+
+
 class TReNDSDataset:
     def __init__(self, df, target_cols, indices, 
                  loading_features,
@@ -117,6 +134,7 @@ class TReNDSDataset:
         path = self.map_path + str(IDX)
         
         all_maps = h5py.File(path + '.mat', 'r')['SM_feature'][()]
+        # all_maps = all_maps[:, 1:-3, 4:-3, 3:-4]
         all_maps = all_maps[:, 1:-3, :, :]
 
         flip_aug = True
@@ -128,71 +146,14 @@ class TReNDSDataset:
                 all_maps = all_maps[:, ::-1, :, :].copy()
 
 
-        mx1 = torch.max(torch.tensor(all_maps), 1)[0]
-        mx1 = torch.transpose(mx1, 2, 0)
+        mx = torch.max(torch.tensor(all_maps), 0)[0]
+        z1 = torch.max(mx, 2)[0].numpy()[:, 2:-2]
+        z2 = torch.max(mx, 1)[0].numpy()[:, 2:-2]
+        z3 = torch.max(mx, 0)[0].numpy().T[2:50, 4:-2]
 
-        mx2 = torch.max(torch.tensor(all_maps), 2)[0]
+        all_maps = np.concatenate([z1,z2,z3], 1)
 
-        i1 = torch.cat([
-                mx1[:,:,3*7:3*8],
-                mx1[:,:,3*8:3*9],
-                mx1[:,:,3*9:3*10],
-            ], 1)
-        i2 = torch.cat([
-                mx1[:,:,3*10:3*11],
-                mx1[:,:,3*11:3*12],
-                mx1[:,:,3*12:3*13],
-            ], 1)
-        i3 = torch.cat([
-                mx1[:,:,3*13:3*14],
-                mx1[:,:,3*14:3*15],
-                mx1[:,:,3*15:3*16],
-            ], 1)
-
-        img1 = torch.cat([i1, i2, i3], 0)
-
-        i4 = torch.cat([
-                mx2[3*7:3*8, :, :],
-                mx2[3*8:3*9, :, :],
-                mx2[3*9:3*10, :, :],
-            ], 2)
-
-        i5 = torch.cat([
-                mx2[3*10:3*11, :, :],
-                mx2[3*11:3*12, :, :],
-                mx2[3*12:3*13, :, :],
-            ], 2)
-
-        i6 = torch.cat([
-                mx2[3*13:3*14, :, :],
-                mx2[3*14:3*15, :, :],
-                mx2[3*15:3*16, :, :],
-            ], 2)
-
-        img2 = torch.cat([i4, i5, i6], 1)
-        img2 = torch.transpose(img2, 0, 2)
-
-        all_maps = torch.cat([img1, img2], 1)
-
-
-        '''
-        imgA = np.concatenate([torch.max(torch.tensor(all_maps), 3)[0].numpy()[20, :, :],
-                               torch.max(torch.tensor(all_maps), 2)[0].numpy()[20, :, :],
-                          ], 1)
-        
-        imgB = np.concatenate([torch.max(torch.tensor(all_maps), 3)[0].numpy()[30, :, :], 
-                               torch.max(torch.tensor(all_maps), 2)[0].numpy()[30, :, :],
-                          ], 1)
-
-        imgC = np.concatenate([torch.max(torch.tensor(all_maps), 3)[0].numpy()[25, :, :],
-                               torch.max(torch.tensor(all_maps), 2)[0].numpy()[25, :, :],
-                          ], 1)
-        
-        # 53*2 x 63*2 の 2d image map
-        # all_maps = np.concatenate([imgA, imgB], 0)
-        # all_maps = np.stack([imgA, imgC, imgB], 2)
-        # all_maps = torch.max(torch.tensor(all_maps), 2)[0].numpy()
-        '''
+        all_maps = normalize_minmax(all_maps)
 
         targets = self.target[self.target.Id==IDX][self.target_cols].values
 
@@ -267,7 +228,7 @@ def run_one_fold(fold_id):
     device = config.DEVICE
 
     model = torchvision.models.resnext50_32x4d(pretrained=True)
-    # model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+    model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
     # model.conv1 = ConvLSTM()
     model.fc = nn.Linear(2048, 5)
     model = model.to(device)

@@ -243,8 +243,7 @@ class ResNet(nn.Module):
         self.no_cuda = no_cuda
         super(ResNet, self).__init__()
         self.conv1 = nn.Conv3d(
-            43, 64, kernel_size=7,
-            # 3, 64, kernel_size=7,
+            53, 64, kernel_size=7,
             stride=(2, 2, 2),
             padding=(3, 3, 3),
             bias=False)
@@ -277,8 +276,7 @@ class ResNet(nn.Module):
                                         bias=False)
                                         )
 
-        # self.fc = nn.Sequential(nn.Linear(13440, num_seg_classes, bias=True))
-        self.fc = nn.Sequential(nn.Linear(15680, num_seg_classes, bias=True))
+        self.f_fc = nn.Linear(14*16*14, 1024)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -324,12 +322,8 @@ class ResNet(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
         x = self.conv_seg(x)
-
-        # print(x.shape)
-        # x = F.adaptive_avg_pool3d(x, (1, 1, 1))
-        # x = x.view(x.size(0), -1)
-        x = x.view(-1, x.size(1)*x.size(2)*x.size(3)*x.size(4))
-        x = self.fc(x)
+        x = x.view(x.size(0), x.size(1), x.size(2)*x.size(3)*x.size(4))
+        x = self.f_fc(x)
         return x
 
 

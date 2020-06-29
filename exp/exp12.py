@@ -121,8 +121,8 @@ class TReNDSDataset:
         
         all_maps = h5py.File(path + '.mat', 'r')['SM_feature'][()]
 
-        all_maps = all_maps[:, 1:-3, 2:-2, 2:-2]
-        all_maps = all_maps[15:18, :, :, :]
+        all_maps = all_maps[5:-5, 1:-3, 2:-2, 2:-2]
+        # all_maps = all_maps[15:18, :, :, :]
 
         all_maps = normalize_minmax(all_maps)
 
@@ -216,11 +216,11 @@ def run_one_fold(fold_id):
     # https://github.com/Tencent/MedicalNet/blob/35ecd5be96ae4edfc1be29816f9847c11d067db0/model.py#L89
     net_dict = model.state_dict() 
     # 医療ドメイン
-    pretrain = torch.load("inputs/pretrain/resnet_50.pth")
+    # pretrain = torch.load("inputs/pretrain/resnet_50.pth")
     # 動画データセット
-    # pretrain = torch.load("inputs/3dResNetsPyTorchWeight/r3d50_KMS_200ep.pth")
-    pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
-    # pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys() and 'conv1' not in k}
+    pretrain = torch.load("inputs/3dResNetsPyTorchWeight/r3d50_KMS_200ep.pth")
+    # pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys()}
+    pretrain_dict = {k: v for k, v in pretrain['state_dict'].items() if k in net_dict.keys() and 'conv1' not in k}
     net_dict.update(pretrain_dict)
 
     model.load_state_dict(net_dict)
